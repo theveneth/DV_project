@@ -28,34 +28,28 @@ page = st.sidebar.radio("Go to", ["Map overview", "Understanding Salary Inequali
     
 def Main_page():
 
+    data_copy = data.copy()
+    data_copy = data_copy.rename(columns={"total_population": "Total Population", "Town":"Town", "longitude":"Longitude", "latitude": "Latitude", "mean_salary": "Mean net salary per hour (€)", "total_firms": "Total firms"})
+    
+
+
     st.title("Salary insights and statistics in France")
     st.write("INSEE is the official french institute gathering data of many types around France\n.It can be demographic (Births, Deaths, Population Density…), Economic (Salary, Firms by activity / size…) and more. \n It can be a great help to observe and measure inequality in the French population.")
 
     st.write("In this visualization, we focus on displaying spatial information about the population, the mean salary and the number of firms in different towns in France.")
 
-    data_copy = data.copy()
-    data_copy = data_copy.rename(columns={"total_population": "Total Population", "Town":"Town", "longitude":"Longitude", "latitude": "Latitude", "mean_salary": "Mean net salary per hour (€)", "total_firms": "Total firms"})
-    
-    
-    salary_box = px.box(pd.DataFrame(data_copy[["Town","Mean net salary per hour (€)"]]), y="Mean net salary per hour (€)", hover_name = "Town")
-    population_box = px.box(pd.DataFrame(data_copy[["Town", "Total Population"]]), y="Total Population", hover_name = "Town")
-
-    st.subheader("Salary Distribution")
-    st.plotly_chart(salary_box)
-    
-    st.write("Here we can see the distribution of the mean salary per hour in different towns in France. The boxplot shows the median, the first and third quartiles, and the outliers. The outliers are the towns with the highest and lowest mean salary per hour. The boxplot is a great way to visualize the distribution of the data.")
-    st.write("Interpretation : the wealthiest cities are generally cities located in Paris greater area. The salaries for these towns are so high compared to the rest of France that we cannot see the outliers for the lower salaries.")
-
-    st.subheader("Population Distribution")
-    st.plotly_chart(population_box)
-    
-    st.write("Here we can see the distribution of the total population in different towns in France. The boxplot shows the median, the first and third quartiles, and the outliers. The outliers are the towns with the highest and lowest total population. The boxplot is a great way to visualize the distribution of the data.")
-    st.write("Interpretation : we can clearly see here the cities with a high population. Paris is an outlier with a very high population compared to the rest of France. The majority of the towns have a population of a few thousands of people.")
-    
     st.subheader("Interactive map of France")
     st.write("Here we can see an interactive map of France. The map shows the towns in France with the mean salary per hour and the total number of firms. The map is interactive, so you can zoom in and out and hover over the towns to see more information about them. You can also filter the data based on the total population and the mean salary per hour using the sliders.")
     # Add sliders for total_population and mean_salary
-    min_population, max_population = st.slider("Select population range", min_value=min(data["total_population"]), max_value=max(data["total_population"]), value=(min(data["total_population"]), max(data["total_population"])))
+    min_data_population = min(data["total_population"])
+    max_data_population = max(data["total_population"])
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        min_population = st.number_input(f"Minimum Population (above {min_data_population})", value=min_data_population, min_value=min_data_population, key="min_input")
+    with col2:
+        max_population = st.number_input(f"Maximum Population (below {max_data_population})", value=max_data_population, min_value=min_data_population, key="max_input")
+
     min_salary, max_salary = st.slider("Select mean salary range", min_value=min(data["mean_salary"]), max_value=max(data["mean_salary"]), value=(min(data["mean_salary"]), max(data["mean_salary"])))
 
     
@@ -74,6 +68,73 @@ def Main_page():
     fig.update_layout(mapbox_style="carto-positron", height=950, width=710)
 
     st.plotly_chart(fig)
+
+    def calculate_outlier_bounds(data_column):
+        """Calculates IQR and outlier bounds for a data column."""
+        q1 = data_column.quantile(0.25)
+        q3 = data_column.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - (1.5 * iqr)
+        upper_bound = q3 + (1.5 * iqr)
+        return lower_bound, upper_bound
+
+    def create_box_plot(data_column, show_outliers, use_log_axis=False):
+        """Creates a box plot with optional outlier visibility and log axis."""
+        box = px.box(data_copy, y=data_column, hover_name="Town")
+
+        if not show_outliers:
+            lower_bound, upper_bound = calculate_outlier_bounds(data_copy[data_column])
+            box.update_traces(boxpoints=False)  # Hide box points
+            box.update_layout(yaxis_range=[lower_bound, upper_bound])
+            use_log_axis=False
+
+        if use_log_axis:
+            box.update_layout(yaxis_type="log")  # Set y-axis to log scale
+
+        if not show_outliers and use_log_axis:
+            # Adjust y-axis range for log scale when hiding outliers
+            box.update_layout(yaxis_range=[max(lower_bound, 1), upper_bound])  # Set minimum to 1 for log
+
+        return box
+
+    # Create checkboxes for outlier visibility
+    
+    
+
+    # Create and display box plots with outlier control
+    st.subheader("Mean Salary by cities Distribution")
+
+    show_salary_outliers = st.checkbox("Show outliers for Mean Salary", value=True)
+    
+
+    st.plotly_chart(create_box_plot("Mean net salary per hour (€)", show_salary_outliers))
+
+    
+    #salary_box = px.box(pd.DataFrame(data_copy[["Town","Mean net salary per hour (€)"]]), y="Mean net salary per hour (€)", hover_name = "Town")
+    #population_box = px.box(pd.DataFrame(data_copy[["Town", "Total Population"]]), y="Total Population", hover_name = "Town")
+
+    #st.subheader("Mean Salary by cities Distribution")
+    #st.plotly_chart(salary_box)
+    
+    st.write("Here we can see the distribution of the mean salary per hour in different towns in France. The boxplot shows the median, the first and third quartiles, and the outliers. The outliers are the towns with the highest and lowest mean salary per hour. The boxplot is a great way to visualize the distribution of the data.")
+    st.write("Interpretation : the wealthiest cities are generally cities located in Paris greater area. The salaries for these towns are so high compared to the rest of France that we cannot see the outliers for the lower salaries.")
+
+    st.subheader("Total Population Distribution")
+    
+    show_population_outliers = st.checkbox("Show outliers for Total Population", value=True)
+    
+    if show_population_outliers:
+        show_log = st.checkbox("Log scale for population", value=show_population_outliers)
+
+    else:
+        show_log = False
+
+    st.plotly_chart(create_box_plot("Total Population", show_population_outliers,show_log))
+    
+    st.write("Here we can see the distribution of the total population in different towns in France. The boxplot shows the median, the first and third quartiles, and the outliers. The outliers are the towns with the highest and lowest total population. The boxplot is a great way to visualize the distribution of the data.")
+    st.write("Interpretation : we can clearly see here the cities with a high population. Paris is an outlier with a very high population compared to the rest of France. The majority of the towns have a population of a few thousands of people.")
+    
+    
 
 
 def Ineq_page():
@@ -126,12 +187,14 @@ def Ineq_page():
         filtered_df_2 = filtered_df_2.copy()
     else:
         filtered_df_2 = filtered_df_2[filtered_df_2["Category"] == category_filter]
+    
+    boxes_1 = st.checkbox("Show box plot on top of violin plot", value=True)
 
     # Use px.violin with color to differentiate genders
     fig_csp = px.violin(filtered_df_2, 
                     y="Mean Salary net per hour (€)", 
                     color="Sex", 
-                    box=True, 
+                    box=boxes_1, 
                     hover_name="Town", 
                     hover_data=filtered_df_2.columns)
     
@@ -179,11 +242,13 @@ def Ineq_page():
     else:
         filtered_df_3 = filtered_df_3[filtered_df_3["Departement"] == departement_filter_2]
 
+    boxes_2 = st.checkbox("Show box plot on top of violin plot ", value=True)
+
     # Create a box plot with age groups on the x-axis and salary on the y-axis, colored by town
     fig_age = px.violin(filtered_df_3, 
                 y="Mean Salary net per hour (€)", 
                 color="Age", 
-                box = True,
+                box = boxes_2,
                 title="Mean Salary per Hour by Age Group and Town",
                 hover_name="Town",
                 hover_data=filtered_df_3.columns
