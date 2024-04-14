@@ -142,23 +142,23 @@ def Ineq_page():
     data_copy_2 = data_copy_2.rename(columns={"nom_région": "Region", "total_population": "Total Population", "Town":"Town", "longitude":"Longitude", "latitude": "Latitude", "mean_salary": "Mean net salary per hour (€)", "total_firms": "Total firms"})
     
     st.title("Understanding Salary Inequalities in France")
-    st.write("Here we will focus not only on the spatial repartion but also on the segmentation of the population by socio-professional categories, age groups and sex.")
+    st.write("Here we will focus not only on the spatial repartion but also on the segmentation of the population by socio-professional categories, age groups and gender.")
 
     #Violin plot between male and female in france
-    st.subheader("Violin plot of the mean salary per hour by sex")
+    st.subheader("Violin plot of the mean salary per hour by gender")
 
     df_socio_professional = []
 
     for line in data_copy_2.iterrows():
-        for sex in ["male", "female"]:
+        for gender in ["male", "female"]:
             for category in ["worker", "employee", "middle_manager", "executive"]:
                 df_socio_professional.append({
                     "Town": line[1]["Town"],
                     "Region": line[1]["Region"],
                     "Departement": line[1]["Departement"],
-                    "Mean Salary net per hour (€)": line[1][f"mean_{sex}_{category}_salary"],
+                    "Mean Salary net per hour (€)": line[1][f"mean_{gender}_{category}_salary"],
                     "Category": category,
-                    "Sex" : sex
+                    "Gender" : gender
                 })
 
     df_socio_professional = pd.DataFrame(df_socio_professional)
@@ -193,7 +193,7 @@ def Ineq_page():
     # Use px.violin with color to differentiate genders
     fig_csp = px.violin(filtered_df_2, 
                     y="Mean Salary net per hour (€)", 
-                    color="Sex", 
+                    color="Gender", 
                     box=boxes_1, 
                     hover_name="Town", 
                     hover_data=filtered_df_2.columns)
@@ -263,7 +263,7 @@ def Ineq_page():
 
 def City_comparison():
     st.title("Comparision of up to 3 cities")
-    st.write("Here we will compare up to 3 cities in France based on the mean salary per hour. You can select the segmentation you want between the socio-professional category, the sex and the age")
+    st.write("Here we will compare up to 3 cities in France based on the mean salary per hour. You can select the segmentation you want between the socio-professional category, the gender and the age")
     st.write('If you want to compare only 2 cities, select "None" for the third city.')
 
     data_copy_3 = data.copy()
@@ -280,30 +280,30 @@ def City_comparison():
 
     filtered_df = data_copy_3[data_copy_3['Town'].isin([town_filter_1, town_filter_2, town_filter_3])]
 
-    # Create a bar chart to compare the mean salary per hour by sex of the two selected towns
+    # Create a bar chart to compare the mean salary per hour by gender of the two selected towns
     st.subheader("Comparing caracteristics of those two towns:")
-    possible_options = ["Socio-professional Category", "Age","Sex"]
+    possible_options = ["Socio-professional Category", "Age","Gender"]
     filter= st.selectbox("Select segmentation :", options=possible_options, index=0)
 
-    if filter == "Sex":
-        df_sex = []
+    if filter == "Gender":
+        df_gender = []
         for line in filtered_df.iterrows():
-            for sex in ["male", "female"]:
-                df_sex.append({
+            for gender in ["male", "female"]:
+                df_gender.append({
                         "Town": line[1]["Town"],
                         "Region": line[1]["nom_région"],
                         "Departement": line[1]["Departement"],
-                        "Sex" :  sex,
-                        "Mean Salary net per hour (€)": line[1][f"mean_{sex}_salary"], 
+                        "Gender" :  gender,
+                        "Mean Salary net per hour (€)": line[1][f"mean_{gender}_salary"], 
                     })
 
-        df_sex = pd.DataFrame(df_sex)
+        df_gender = pd.DataFrame(df_gender)
 
-        male_df = df_sex[df_sex["Sex"]== "male"]
+        male_df = df_gender[df_gender["Gender"]== "male"]
         trace_1 = go.Bar(x = male_df["Town"], y=male_df['Mean Salary net per hour (€)'])
         trace_1.name = "Male"
 
-        female_df = df_sex[df_sex["Sex"]== "female"]
+        female_df = df_gender[df_gender["Gender"]== "female"]
         trace_2 = go.Bar(x = female_df["Town"], y=female_df['Mean Salary net per hour (€)'])
         trace_2.name = "Female"
 
@@ -418,8 +418,12 @@ def Definitions():
     st.write("The data used in this visualization was obtained from this Kaggle dataset : https://www.kaggle.com/datasets/etiennelq/french-employment-by-town/data")
     st.write("The dataset contains information about the town, salaries and population in France in multiple files. During the preprocessing, we merged those files and renamed the columns to make the data readable.")
     st.write("For example, the column 'SNHMFC14', which represents the mean net salary per hour for feminin executive according to the dataset, was renamed mean_female_executive_salary.")
+    st.write("We took the preprocessing on this link : https://www.kaggle.com/code/dirkxie/data-preparation and we modified it to obtain more precise information for each town about the region, the departement, the population.")
+    st.write("At the end of the preprocessing, we get a single dataset with one line per town and information for each segmentation of the population.")
+    st.write("Original datasets are heavy so we put only the preprocessed data in the github repository. The original data can be found in the Kaggle dataset.")
 
-    st.write("Note that we put only the preprocessed data in the github repository. The original data can be found in the Kaggle dataset.")
+    st.write("Our Github link : https://github.com/theveneth/DV_project ")
+
 
     st.subheader("Definitions")
 

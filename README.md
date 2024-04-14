@@ -29,3 +29,9 @@ robin.charleuf@student-cs.fr
 
 sebastian.lee@student-cs.fr
 
+Methodology and information can be found in the last page of the app :
+
+https://theveneth-dv-project-main-page-4amdnh.streamlit.app/
+
+
+
